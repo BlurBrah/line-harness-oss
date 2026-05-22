@@ -15,3 +15,6 @@ apps/web/out/
 apps/worker/dist/
 .worktrees/
 .claude/worktrees/
+.line-harness-config.json
+.line-harness-setup.json
+profile-preview.html

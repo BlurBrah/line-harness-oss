@@ -25,6 +25,8 @@ conversions.get('/api/conversions/points', async (c) => {
         name: p.name,
         eventType: p.event_type,
         value: p.value,
+        triggerTagId: p.trigger_tag_id,
+        triggerTrackedLinkId: p.trigger_tracked_link_id,
         createdAt: p.created_at,
       })),
     });
@@ -41,6 +43,8 @@ conversions.post('/api/conversions/points', async (c) => {
       name: string;
       eventType: string;
       value?: number | null;
+      triggerTagId?: string | null;
+      triggerTrackedLinkId?: string | null;
     }>();
 
     if (!body.name || !body.eventType) {
@@ -55,6 +59,8 @@ conversions.post('/api/conversions/points', async (c) => {
         name: point.name,
         eventType: point.event_type,
         value: point.value,
+        triggerTagId: point.trigger_tag_id,
+        triggerTrackedLinkId: point.trigger_tracked_link_id,
         createdAt: point.created_at,
       },
     }, 201);

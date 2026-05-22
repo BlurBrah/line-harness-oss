@@ -1,4 +1,4 @@
-import { getScenarios, enrollFriendInScenario, jstNow } from '@line-crm/db';
+import { getScenarios, enrollFriendInScenario, jstNow, getConversionPointByTagId, trackConversion } from '@line-crm/db';
 import { fireEvent } from './event-bus.js';
 
 // friend に tag を attach し、`POST /api/friends/:id/tags` と同じ side effects を発火する。
@@ -42,6 +42,17 @@ export async function attachTagAndFireSideEffects(
     }
   }
 
-  await fireEvent(db, 'tag_change', { friendId, eventData: { tagId, action: 'add' } });
+  // Tag-triggered conversion: look up CV point linked to this tag
+  const cvPoint = await getConversionPointByTagId(db, tagId);
+  if (cvPoint) {
+    await trackConversion(db, { conversionPointId: cvPoint.id, friendId });
+  }
+
+  await fireEvent(db, 'tag_change', {
+    friendId,
+    eventData: { tagId, action: 'add' },
+    conversionEventName: cvPoint?.event_type,
+    conversionValue: cvPoint?.value ?? undefined,
+  });
   return { added: true };
 }

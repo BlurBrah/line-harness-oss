@@ -37,6 +37,10 @@ export async function deployWorker(
   const deployToml = `name = "${options.workerName}"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
+# nodejs_compat is required by @line-harness/update-engine which pulls in
+# node:stream / node:zlib / node:crypto and tar-stream. Without this flag the
+# worker fails to deploy with "No such module stream" (error 10021).
+compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 account_id = "${options.accountId}"
 

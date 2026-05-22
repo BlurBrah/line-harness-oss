@@ -256,11 +256,13 @@ CREATE INDEX IF NOT EXISTS idx_line_accounts_display_order
 -- Round 2: Conversion Points (CV Tracking)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS conversion_points (
-  id         TEXT PRIMARY KEY,
-  name       TEXT NOT NULL,
-  event_type TEXT NOT NULL,
-  value      REAL,
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now', '+9 hours'))
+  id              TEXT PRIMARY KEY,
+  name            TEXT NOT NULL,
+  event_type      TEXT NOT NULL,
+  value           REAL,
+  trigger_tag_id          TEXT REFERENCES tags (id) ON DELETE SET NULL,
+  trigger_tracked_link_id TEXT REFERENCES tracked_links (id) ON DELETE SET NULL,
+  created_at              TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now', '+9 hours'))
 );
 
 -- ============================================================

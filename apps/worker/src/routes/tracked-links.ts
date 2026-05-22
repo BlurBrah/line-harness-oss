@@ -8,8 +8,11 @@ import {
   recordLinkClick,
   getLinkClicks,
   getFriendByLineUserId,
+  getConversionPointByTrackedLinkId,
+  trackConversion,
 } from '@line-crm/db';
 import { addTagToFriend, enrollFriendInScenario } from '@line-crm/db';
+import { sendAdConversions } from '../services/ad-conversion.js';
 import type { TrackedLink } from '@line-crm/db';
 import type { Env } from '../index.js';
 
@@ -280,6 +283,13 @@ trackedLinks.get('/t/:linkId', async (c) => {
 
           if (actions.length > 0) {
             await Promise.allSettled(actions);
+          }
+
+          // Tracked-link-triggered conversion: look up CV point linked to this link
+          const cvPoint = await getConversionPointByTrackedLinkId(c.env.DB, linkId);
+          if (cvPoint) {
+            await trackConversion(c.env.DB, { conversionPointId: cvPoint.id, friendId });
+            await sendAdConversions(c.env.DB, friendId, cvPoint.event_type, cvPoint.value ?? undefined);
           }
         }
       } catch (err) {

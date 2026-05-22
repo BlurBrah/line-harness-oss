@@ -8,6 +8,8 @@ export interface ConversionPoint {
   name: string;
   event_type: string;
   value: number | null;
+  trigger_tag_id: string | null;
+  trigger_tracked_link_id: string | null;
   created_at: string;
 }
 
@@ -44,6 +46,8 @@ export interface CreateConversionPointInput {
   name: string;
   eventType: string;
   value?: number | null;
+  triggerTagId?: string | null;
+  triggerTrackedLinkId?: string | null;
 }
 
 export async function createConversionPoint(
@@ -55,10 +59,10 @@ export async function createConversionPoint(
 
   await db
     .prepare(
-      `INSERT INTO conversion_points (id, name, event_type, value, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO conversion_points (id, name, event_type, value, trigger_tag_id, trigger_tracked_link_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(id, input.name, input.eventType, input.value ?? null, now)
+    .bind(id, input.name, input.eventType, input.value ?? null, input.triggerTagId ?? null, input.triggerTrackedLinkId ?? null, now)
     .run();
 
   return (await getConversionPointById(db, id))!;
@@ -69,6 +73,26 @@ export async function deleteConversionPoint(
   id: string,
 ): Promise<void> {
   await db.prepare(`DELETE FROM conversion_points WHERE id = ?`).bind(id).run();
+}
+
+export async function getConversionPointByTagId(
+  db: D1Database,
+  tagId: string,
+): Promise<ConversionPoint | null> {
+  return db
+    .prepare(`SELECT * FROM conversion_points WHERE trigger_tag_id = ?`)
+    .bind(tagId)
+    .first<ConversionPoint>();
+}
+
+export async function getConversionPointByTrackedLinkId(
+  db: D1Database,
+  trackedLinkId: string,
+): Promise<ConversionPoint | null> {
+  return db
+    .prepare(`SELECT * FROM conversion_points WHERE trigger_tracked_link_id = ?`)
+    .bind(trackedLinkId)
+    .first<ConversionPoint>();
 }
 
 // ── Conversion Events ───────────────────────────────────────────────────────

@@ -444,8 +444,21 @@ friends.post('/api/friends/:id/tags', async (c) => {
       }
     }
 
-    // イベントバス発火: tag_change
-    await fireEvent(db, 'tag_change', { friendId, eventData: { tagId: body.tagId, action: 'add' } });
+    // Tag-triggered conversion: look up CV point linked to this tag
+    const { getConversionPointByTagId, trackConversion } = await import('@line-crm/db');
+    const cvPoint = await getConversionPointByTagId(db, body.tagId);
+    const conversionEventName = cvPoint?.event_type;
+    if (cvPoint) {
+      await trackConversion(db, { conversionPointId: cvPoint.id, friendId });
+    }
+
+    // イベントバス発火: tag_change (with optional CV event)
+    await fireEvent(db, 'tag_change', {
+      friendId,
+      eventData: { tagId: body.tagId, action: 'add' },
+      conversionEventName,
+      conversionValue: cvPoint?.value ?? undefined,
+    });
 
     return c.json({ success: true, data: null }, 201);
   } catch (err) {
