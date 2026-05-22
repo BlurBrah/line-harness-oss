@@ -1,0 +1,177 @@
+<svg viewBox="0 0 1100 580" xmlns="http://www.w3.org/2000/svg" role="img" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <title>lis_lp → LINE Harness CV計測フロー</title>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#888"/>
+    </marker>
+    <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#06c755"/>
+    </marker>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="arr-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/>
+    </marker>
+    <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#e74c3c"/>
+    </marker>
+  </defs>
+
+  <!-- ============================================================ -->
+  <!-- Column labels                                                 -->
+  <!-- ============================================================ -->
+  <text x="80" y="24" text-anchor="middle" font-size="11" fill="#777" font-weight="600">広告</text>
+  <text x="270" y="24" text-anchor="middle" font-size="11" fill="#777" font-weight="600">LP</text>
+  <text x="480" y="24" text-anchor="middle" font-size="11" fill="#777" font-weight="600">LINE友だち追加</text>
+  <text x="720" y="24" text-anchor="middle" font-size="11" fill="#777" font-weight="600">LINE Harness内</text>
+  <text x="970" y="24" text-anchor="middle" font-size="11" fill="#777" font-weight="600">予約完了</text>
+
+  <!-- ============================================================ -->
+  <!-- META広告                                                      -->
+  <!-- ============================================================ -->
+  <rect x="20" y="130" width="120" height="60" rx="10" fill="#1a1a1a"/>
+  <text x="80" y="157" text-anchor="middle" fill="#fff" font-size="14" font-weight="600">META広告</text>
+  <text x="80" y="175" text-anchor="middle" fill="#fff" font-size="10" opacity="0.8">LP へ出稿</text>
+
+  <!-- ============================================================ -->
+  <!-- lis_lp                                                        -->
+  <!-- ============================================================ -->
+  <rect x="185" y="115" width="170" height="56" rx="9" fill="#f3f3f1" stroke="#d4d4cf" stroke-width="1.5"/>
+  <text x="270" y="140" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a1a">lis_lp</text>
+  <text x="270" y="158" text-anchor="middle" font-size="10" fill="#777">ダイエット診断LP</text>
+
+  <!-- META -> LP -->
+  <path d="M140,160 L183,155" fill="none" stroke="#999" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ============================================================ -->
+  <!-- Purchase (Pixel) — below LP                                   -->
+  <!-- ============================================================ -->
+  <rect x="195" y="220" width="150" height="46" rx="8" fill="#fde8e8" stroke="#e74c3c" stroke-width="1.6"/>
+  <text x="270" y="240" text-anchor="middle" font-size="13" font-weight="700" fill="#c0392b">Purchase</text>
+  <text x="270" y="256" text-anchor="middle" font-size="10" fill="#888">Pixel（ブラウザ側）</text>
+
+  <!-- LP -> Purchase -->
+  <path d="M270,171 L270,218" fill="none" stroke="#e74c3c" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#arr-r)"/>
+  <text x="280" y="200" font-size="9" fill="#c0392b">CTAクリック時発火</text>
+
+  <!-- ============================================================ -->
+  <!-- LINE友だち追加                                                -->
+  <!-- ============================================================ -->
+  <rect x="400" y="115" width="160" height="56" rx="10" fill="#eafaf0" stroke="#06c755" stroke-width="1.8"/>
+  <text x="480" y="140" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a1a">LINE友だち追加</text>
+  <text x="480" y="158" text-anchor="middle" font-size="10" fill="#777">@851neiji</text>
+
+  <!-- LP -> LINE (CTA link) -->
+  <path d="M355,143 L398,143" fill="none" stroke="#06c755" stroke-width="1.5" marker-end="url(#arr-g)"/>
+  <text x="377" y="137" text-anchor="middle" font-size="9" fill="#06c755">CTA</text>
+
+  <!-- ============================================================ -->
+  <!-- Lead (CAPI) — below LINE                                      -->
+  <!-- ============================================================ -->
+  <rect x="410" y="220" width="140" height="46" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+  <text x="480" y="240" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">Lead</text>
+  <text x="480" y="256" text-anchor="middle" font-size="10" fill="#888">CAPI（サーバー側）</text>
+
+  <path d="M480,171 L480,218" fill="none" stroke="#f59e0b" stroke-width="1.3" marker-end="url(#arr-o)"/>
+  <text x="490" y="200" font-size="9" fill="#92400e">友だち追加時</text>
+
+  <!-- ============================================================ -->
+  <!-- LINE Harness box                                              -->
+  <!-- ============================================================ -->
+  <rect x="610" y="50" width="220" height="240" rx="12" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="6 3"/>
+  <text x="720" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="#3b82f6">LINE Harness</text>
+
+  <rect x="630" y="86" width="180" height="38" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.4"/>
+  <text x="720" y="106" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a1a">シナリオ配信</text>
+  <text x="720" y="119" text-anchor="middle" font-size="9" fill="#777">予約リンク付きステップ配信</text>
+
+  <rect x="630" y="136" width="180" height="38" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.4"/>
+  <text x="720" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a1a">リッチメニュー</text>
+  <text x="720" y="169" text-anchor="middle" font-size="9" fill="#777">「予約する」「お客様の声」</text>
+
+  <rect x="630" y="186" width="180" height="38" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.4"/>
+  <text x="720" y="206" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a1a">トラッキングリンク</text>
+  <text x="720" y="219" text-anchor="middle" font-size="9" fill="#777">クリック検知 → CV発火</text>
+
+  <rect x="630" y="236" width="180" height="38" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.4"/>
+  <text x="720" y="256" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a1a">LIFF 予約フロー</text>
+  <text x="720" y="269" text-anchor="middle" font-size="9" fill="#777">プロフィール→メニュー→日時→確認</text>
+
+  <!-- LINE -> Harness -->
+  <path d="M560,135 C590,135 600,105 628,105" fill="none" stroke="#3b82f6" stroke-width="1.4" marker-end="url(#arr-b)"/>
+  <path d="M560,150 C590,150 600,155 628,155" fill="none" stroke="#3b82f6" stroke-width="1.4" marker-end="url(#arr-b)"/>
+
+  <!-- Internal flows -->
+  <path d="M720,124 L720,134" fill="none" stroke="#93c5fd" stroke-width="1.2" marker-end="url(#arr-b)"/>
+  <path d="M720,174 L720,184" fill="none" stroke="#93c5fd" stroke-width="1.2" marker-end="url(#arr-b)"/>
+  <path d="M720,224 L720,234" fill="none" stroke="#93c5fd" stroke-width="1.2" marker-end="url(#arr-b)"/>
+
+  <!-- ============================================================ -->
+  <!-- InitiateCheckout (CAPI)                                       -->
+  <!-- ============================================================ -->
+  <rect x="640" y="320" width="170" height="46" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+  <text x="725" y="340" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">InitiateCheckout</text>
+  <text x="725" y="356" text-anchor="middle" font-size="10" fill="#888">CAPI（サーバー側）</text>
+
+  <path d="M720,224 L725,318" fill="none" stroke="#f59e0b" stroke-width="1.3" marker-end="url(#arr-o)"/>
+  <text x="738" y="306" font-size="9" fill="#92400e">リンククリック時</text>
+
+  <!-- ============================================================ -->
+  <!-- 予約完了                                                      -->
+  <!-- ============================================================ -->
+  <rect x="890" y="130" width="160" height="56" rx="10" fill="#eafaf0" stroke="#06c755" stroke-width="1.8"/>
+  <text x="970" y="154" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a1a">予約完了</text>
+  <text x="970" y="172" text-anchor="middle" font-size="10" fill="#777">タグ自動付与 + LINE通知</text>
+
+  <path d="M810,255 L888,170" fill="none" stroke="#06c755" stroke-width="1.4" marker-end="url(#arr-g)"/>
+
+  <!-- CompleteRegistration (CAPI) -->
+  <rect x="890" y="320" width="160" height="46" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+  <text x="970" y="340" text-anchor="middle" font-size="12" font-weight="700" fill="#92400e">CompleteRegistration</text>
+  <text x="970" y="356" text-anchor="middle" font-size="10" fill="#888">CAPI（サーバー側）</text>
+
+  <path d="M970,186 L970,318" fill="none" stroke="#f59e0b" stroke-width="1.3" marker-end="url(#arr-o)"/>
+  <text x="980" y="270" font-size="9" fill="#92400e">予約完了時</text>
+
+  <!-- ============================================================ -->
+  <!-- Feedback lane                                                 -->
+  <!-- ============================================================ -->
+  <rect x="0" y="400" width="1100" height="50" fill="#fafafa" stroke="#eee" stroke-width="1"/>
+  <text x="80" y="430" text-anchor="middle" font-size="11" font-weight="700" fill="#1a1a1a">META広告へ</text>
+  <text x="80" y="443" text-anchor="middle" font-size="11" font-weight="700" fill="#1a1a1a">フィードバック</text>
+
+  <!-- Horizontal lanes (separated) -->
+  <line x1="970" y1="418" x2="130" y2="418" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#arr-o)"/>
+  <line x1="270" y1="436" x2="130" y2="436" stroke="#e74c3c" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#arr-r)"/>
+
+  <!-- Vertical connectors down to lane -->
+  <line x1="270" y1="266" x2="270" y2="430" stroke="#e74c3c" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <circle cx="270" cy="436" r="4" fill="#e74c3c"/>
+
+  <line x1="480" y1="266" x2="480" y2="412" stroke="#f59e0b" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <circle cx="480" cy="418" r="4" fill="#f59e0b"/>
+
+  <line x1="725" y1="366" x2="725" y2="412" stroke="#f59e0b" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <circle cx="725" cy="418" r="4" fill="#f59e0b"/>
+
+  <line x1="970" y1="366" x2="970" y2="412" stroke="#f59e0b" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <circle cx="970" cy="418" r="4" fill="#f59e0b"/>
+
+  <!-- ============================================================ -->
+  <!-- Legend                                                        -->
+  <!-- ============================================================ -->
+  <rect x="20" y="478" width="1060" height="90" rx="10" fill="#fafafa" stroke="#ddd" stroke-width="1"/>
+
+  <line x1="40" y1="504" x2="75" y2="504" stroke="#e74c3c" stroke-width="2.5" stroke-dasharray="6 3"/>
+  <circle cx="85" cy="504" r="4" fill="#e74c3c"/>
+  <text x="98" y="508" font-size="12" fill="#1a1a1a" font-weight="600">Pixel（ブラウザ側）</text>
+  <text x="270" y="508" font-size="11" fill="#555">LP CTAクリック → Purchase 発火。既存の学習データ蓄積済み → 変更不要</text>
+
+  <line x1="40" y1="530" x2="75" y2="530" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="6 3"/>
+  <circle cx="85" cy="530" r="4" fill="#f59e0b"/>
+  <text x="98" y="534" font-size="12" fill="#1a1a1a" font-weight="600">CAPI（サーバー側）</text>
+  <text x="270" y="534" font-size="11" fill="#555">LINE Harness → Lead / InitiateCheckout / CompleteRegistration 送信。Pixel とは別経路で干渉なし</text>
+
+  <text x="40" y="558" font-size="12" font-weight="700" fill="#1a1a1a">結論：LP側 Purchase（Pixel）維持 ＋ LINE Harness で3段階 CAPI → 両立可能・技術的問題なし</text>
+</svg>

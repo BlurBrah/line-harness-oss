@@ -5,9 +5,13 @@ import App from './App.js';
 import { initLiff } from './lib/liff-auth.js';
 import './index.css';
 
+const isPreview = new URLSearchParams(window.location.search).get('mode') === 'preview';
+
 (async () => {
   try {
-    await initLiff();
+    if (!isPreview) {
+      await initLiff();
+    }
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
         <BrowserRouter>

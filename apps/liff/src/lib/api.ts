@@ -116,7 +116,47 @@ export interface EventBookingMine {
   slot_ends_at: string;
 }
 
-export const api = {
+const isPreview = new URLSearchParams(window.location.search).get('mode') === 'preview';
+
+const mockMenus: MenuItem[] = [
+  { id: '1', name: '初回ダイエット診断カウンセリング', category_label: 'おすすめ', description: '体質・生活習慣を分析し、あなた専用のダイエットプランをご提案', duration_minutes: 60, buffer_after_minutes: 0, base_price: 0, sort_order: 1 },
+  { id: '2', name: '初回体験コース', category_label: 'おすすめ', description: 'カウンセリング＋施術のフルコース体験', duration_minutes: 90, buffer_after_minutes: 0, base_price: 21980, sort_order: 2 },
+  { id: '3', name: 'オンラインカウンセリング', category_label: 'オンライン', description: 'ご自宅からビデオ通話でカウンセリング', duration_minutes: 30, buffer_after_minutes: 0, base_price: 0, sort_order: 3 },
+];
+
+const mockStaff: StaffItem[] = [
+  { id: '1', display_name: '新田 友里', role: 'ダイエットカウンセラー', profile_image_url: 'https://www.lislim.jp/wp-content/uploads/IMG_8974-scaled.jpg', bio: 'エステティシャン歴18年', is_designation_optional: 0, price: 0, duration_minutes: 60 },
+];
+
+function mockSlots() {
+  const slots: Array<{ date: string; start: string; end: string }> = [];
+  const now = new Date();
+  for (let d = 1; d <= 7; d++) {
+    const date = new Date(now.getTime() + d * 86400000);
+    if (date.getDay() === 0) continue;
+    const ds = date.toISOString().slice(0, 10);
+    for (const h of ['10:00', '11:00', '13:00', '14:00', '15:00']) {
+      slots.push({ date: ds, start: h, end: h.replace(/^\d+/, (m) => String(Number(m) + 1)) });
+    }
+  }
+  return slots;
+}
+
+const mockApi = {
+  menus: () => Promise.resolve({ menus: mockMenus }),
+  staffOf: (_menuId: string) => Promise.resolve({ staff: mockStaff }),
+  availability: (_menuId: string, _staffId: string | undefined, _from: string, _to: string) =>
+    Promise.resolve({ by_staff: [{ staff_id: '1', display_name: '新田 友里', slots: mockSlots() }] }),
+  createRequest: (_body: unknown, _idemKey: string) => Promise.resolve({ booking_id: 'preview', status: 'requested' }),
+  me: () => Promise.resolve({ upcoming: [], past: [] }),
+  getEvent: (_id: string) => Promise.reject(new Error('preview')),
+  getEventSlots: (_id: string) => Promise.reject(new Error('preview')),
+  createEventBooking: (_eid: string, _body: unknown, _key: string) => Promise.reject(new Error('preview')),
+  myEventBookings: (_tab: 'upcoming' | 'past') => Promise.resolve({ items: [] }),
+  cancelMyEventBooking: (_id: string) => Promise.reject(new Error('preview')),
+};
+
+export const api = isPreview ? mockApi : {
   menus: () => get<{ menus: MenuItem[] }>('/api/liff/booking/menus'),
   staffOf: (menuId: string) =>
     get<{ staff: StaffItem[] }>(`/api/liff/booking/menus/${menuId}/staff`),
