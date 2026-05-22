@@ -15,6 +15,7 @@ export interface AdPlatformConfig {
   pixel_id?: string;
   access_token?: string;
   test_event_code?: string;
+  ad_account_id?: string;
   // X
   api_key?: string;
   api_secret?: string;

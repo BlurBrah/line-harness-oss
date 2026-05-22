@@ -478,6 +478,30 @@ export const api = {
         '/api/conversions/report?' + new URLSearchParams(params as Record<string, string>),
       ),
   },
+  adInsights: {
+    summary: (params?: { datePreset?: string; since?: string; until?: string }) => {
+      const q = new URLSearchParams()
+      if (params?.datePreset) q.set('datePreset', params.datePreset)
+      if (params?.since) q.set('since', params.since)
+      if (params?.until) q.set('until', params.until)
+      return fetchApi<ApiResponse<{ data: Array<Record<string, unknown>> }>>(`/api/ad-insights/summary?${q}`)
+    },
+    campaigns: (params?: { datePreset?: string; since?: string; until?: string; level?: string }) => {
+      const q = new URLSearchParams()
+      if (params?.datePreset) q.set('datePreset', params.datePreset)
+      if (params?.since) q.set('since', params.since)
+      if (params?.until) q.set('until', params.until)
+      if (params?.level) q.set('level', params.level)
+      return fetchApi<ApiResponse<{ data: Array<Record<string, unknown>> }>>(`/api/ad-insights?${q}`)
+    },
+    age: (params?: { datePreset?: string; since?: string; until?: string }) => {
+      const q = new URLSearchParams()
+      if (params?.datePreset) q.set('datePreset', params.datePreset)
+      if (params?.since) q.set('since', params.since)
+      if (params?.until) q.set('until', params.until)
+      return fetchApi<ApiResponse<{ data: Array<Record<string, unknown>> }>>(`/api/ad-insights/age?${q}`)
+    },
+  },
   affiliates: {
     list: () =>
       fetchApi<ApiResponse<Affiliate[]>>('/api/affiliates'),

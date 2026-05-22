@@ -11,6 +11,7 @@ export { RichMenusResource } from './resources/rich-menus.js'
 export { TrackedLinksResource } from './resources/tracked-links.js'
 export { FormsResource } from './resources/forms.js'
 export { AdPlatformsResource } from './resources/ad-platforms.js'
+export { AdInsightsResource } from './resources/ad-insights.js'
 export { StaffResource } from './resources/staff.js'
 export { ImagesResource } from './resources/images.js'
 export { AutoRepliesResource } from './resources/auto-replies.js'
@@ -82,3 +83,10 @@ export type {
   CreateAdPlatformInput,
   UpdateAdPlatformInput,
 } from './resources/ad-platforms.js'
+
+export type {
+  MetaAction,
+  AdInsightRow,
+  AdInsightsResponse,
+  AdInsightsQuery,
+} from './resources/ad-insights.js'
