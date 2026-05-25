@@ -19,10 +19,21 @@ import {
   enrollFriendInScenario,
   jstNow,
   getFriendScore,
+  getConversionPointsByEventType,
+  trackConversion,
 } from '@line-crm/db';
 import { LineClient } from '@line-crm/line-sdk';
 import type { Message } from '@line-crm/line-sdk';
 import { sendAdConversions } from './ad-conversion.js';
+
+// Maps system event names to the Meta-standard event_type column on
+// conversion_points. When an event fires, every conversion_point whose
+// event_type matches is recorded automatically — so registering a
+// "LINE友だち追加" point with event_type=Lead is enough to start measuring,
+// no per-tag trigger wiring required.
+const EVENT_TO_CONVERSION_TYPE: Record<string, string> = {
+  friend_add: 'Lead',
+};
 
 export interface EventPayload {
   friendId?: string;
@@ -52,6 +63,7 @@ export async function fireEvent(
   const phase1: Promise<unknown>[] = [
     fireOutgoingWebhooks(db, eventType, payload),
     processScoring(db, eventType, payload),
+    recordImplicitConversion(db, eventType, payload),
   ];
   if (payload.friendId && payload.conversionEventName) {
     phase1.push(
@@ -73,6 +85,45 @@ export async function fireEvent(
 
   // Phase 2: evaluate automations.
   await processAutomations(db, eventType, enrichedPayload, lineAccessToken, lineAccountId);
+}
+
+/**
+ * Auto-record a conversion event whenever a system event maps to a
+ * Meta-standard event_type (see EVENT_TO_CONVERSION_TYPE). Without this hook
+ * a "LINE友だち追加" conversion_point would never fire unless the operator
+ * also wired up a trigger_tag_id / trigger_tracked_link_id — which is exactly
+ * what produced the "LINE追加 0件" bug surfaced by the ad insights dashboard.
+ */
+async function recordImplicitConversion(
+  db: D1Database,
+  eventType: string,
+  payload: EventPayload,
+): Promise<void> {
+  if (!payload.friendId) return;
+  const cvEventType = EVENT_TO_CONVERSION_TYPE[eventType];
+  if (!cvEventType) return;
+  try {
+    const points = await getConversionPointsByEventType(db, cvEventType);
+    for (const point of points) {
+      // Skip points that already have an explicit trigger configured — those
+      // are fired by their own pathway (tag attach / tracked link click) and
+      // double-counting would silently inflate ad CPA reports.
+      if (point.trigger_tag_id || point.trigger_tracked_link_id) continue;
+      try {
+        await trackConversion(db, {
+          conversionPointId: point.id,
+          friendId: payload.friendId,
+        });
+      } catch (err) {
+        console.error(
+          `[event-bus] failed to record implicit conversion point=${point.id} event=${eventType}:`,
+          err,
+        );
+      }
+    }
+  } catch (err) {
+    console.error(`[event-bus] recordImplicitConversion lookup failed event=${eventType}:`, err);
+  }
 }
 
 /** 送信Webhookへの通知 */
