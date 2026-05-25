@@ -457,13 +457,18 @@ export default function AdInsightsPage() {
 
           {/* ===== KPI Cards ===== */}
           {summary && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
               <KpiCard label="広告費 (円)" value={fmtJpy(spend)} sub={fmtUsd(spend)} />
               <KpiCard label="インプレッション" value={fmtNum(impressions)} />
               <KpiCard label="クリック" value={fmtNum(clicks)} sub={`CTR ${fmtPct(parseFloat(summary.ctr || '0'))}`} />
               <KpiCard label="CPC (円)" value={fmtJpy(parseFloat(summary.cpc || '0'))} sub={fmtUsd(parseFloat(summary.cpc || '0'))} />
               <KpiCard label="Purchase" value={fmtNum(purchase)} sub={`CPA ${fmtCpa(spend, purchase)}`} />
-              <KpiCard label="LINE追加" value={fmtNum(lineAdds)} sub={`CPA ${fmtCpa(spend, lineAdds)}`} highlight />
+              <KpiCard
+                label="Purchase→LINE登録"
+                value={purchase > 0 ? fmtPct(lineAdds / purchase * 100) : '-'}
+                sub={`${fmtNum(lineAdds)} / ${fmtNum(purchase)}`}
+              />
+              <KpiCard label="LINE登録CPA (円)" value={fmtCpa(spend, lineAdds)} sub={`LINE追加 ${fmtNum(lineAdds)}`} highlight />
             </div>
           )}
 
