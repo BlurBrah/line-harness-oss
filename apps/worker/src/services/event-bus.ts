@@ -21,6 +21,7 @@ import {
   getFriendScore,
   getConversionPointsByEventType,
   trackConversion,
+  hasConversionForFriend,
 } from '@line-crm/db';
 import { LineClient } from '@line-crm/line-sdk';
 import type { Message } from '@line-crm/line-sdk';
@@ -110,6 +111,11 @@ async function recordImplicitConversion(
       // double-counting would silently inflate ad CPA reports.
       if (point.trigger_tag_id || point.trigger_tracked_link_id) continue;
       try {
+        // Idempotency guard: LINE re-sends the follow webhook on re-follow /
+        // unblock, firing friend_add again. Without this check a friend gets a
+        // duplicate Lead row each time, inflating "LINE追加" beyond the actual
+        // friend count.
+        if (await hasConversionForFriend(db, point.id, payload.friendId)) continue;
         await trackConversion(db, {
           conversionPointId: point.id,
           friendId: payload.friendId,

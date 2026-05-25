@@ -148,6 +148,25 @@ export async function trackConversion(
     .first<ConversionEvent>())!;
 }
 
+// True if this friend already has a conversion_event for this point. Used to
+// keep auto-recorded conversions (e.g. Lead on friend_add) idempotent: LINE
+// re-sends the follow webhook on re-follow/unblock, which would otherwise
+// insert a duplicate Lead row and inflate the funnel.
+export async function hasConversionForFriend(
+  db: D1Database,
+  conversionPointId: string,
+  friendId: string,
+): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `SELECT 1 FROM conversion_events
+       WHERE conversion_point_id = ? AND friend_id = ? LIMIT 1`,
+    )
+    .bind(conversionPointId, friendId)
+    .first<{ 1: number }>();
+  return row !== null;
+}
+
 export async function getConversionEvents(
   db: D1Database,
   opts: {
@@ -225,14 +244,19 @@ export async function getConversionReport(
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+  // Count each friend at most once per conversion point. A friend can hit the
+  // same point multiple times — friend_add re-fires on LINE re-follow/unblock,
+  // and a backfill may have seeded an extra row — which would otherwise inflate
+  // the funnel ("LINE追加 10" for only 8 actual friends) and distort CPA.
+  // total_value is unique friends × the point's value to stay consistent.
   const result = await db
     .prepare(
       `SELECT
          cp.id as conversion_point_id,
          cp.name as conversion_point_name,
          cp.event_type,
-         COUNT(ce.id) as total_count,
-         COALESCE(SUM(cp.value), 0) as total_value
+         COUNT(DISTINCT ce.friend_id) as total_count,
+         COALESCE(cp.value, 0) * COUNT(DISTINCT ce.friend_id) as total_value
        FROM conversion_points cp
        LEFT JOIN conversion_events ce ON ce.conversion_point_id = cp.id ${conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : ''}
        GROUP BY cp.id
