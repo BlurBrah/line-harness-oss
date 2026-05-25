@@ -95,6 +95,20 @@ export async function getConversionPointByTrackedLinkId(
     .first<ConversionPoint>();
 }
 
+// Look up by Meta-style event_type ("Lead", "CompleteRegistration" 等).
+// Returns multiple points because an org may register several CV points for the
+// same standard event (e.g. two Lead variants for different campaigns).
+export async function getConversionPointsByEventType(
+  db: D1Database,
+  eventType: string,
+): Promise<ConversionPoint[]> {
+  const result = await db
+    .prepare(`SELECT * FROM conversion_points WHERE event_type = ?`)
+    .bind(eventType)
+    .all<ConversionPoint>();
+  return result.results;
+}
+
 // ── Conversion Events ───────────────────────────────────────────────────────
 
 export interface TrackConversionInput {
