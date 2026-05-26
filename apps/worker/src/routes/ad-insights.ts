@@ -103,6 +103,41 @@ adInsights.get('/api/ad-insights/summary', async (c) => {
   }
 });
 
+// GET /api/ad-insights/token-status — Meta access token validity & expiry.
+// Uses Graph API debug_token so the dashboard can warn before the token lapses
+// and ad data silently stops loading. expires_at = 0 means a non-expiring
+// (system user) token.
+adInsights.get('/api/ad-insights/token-status', async (c) => {
+  const result = await resolveMetaConfig(c.env.DB);
+  if ('error' in result) return c.json({ success: false, error: result.error }, result.status);
+
+  const token = result.config.access_token!;
+  try {
+    const url = `https://graph.facebook.com/v21.0/debug_token?input_token=${encodeURIComponent(token)}&access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url);
+    const body = (await res.json()) as { data?: Record<string, unknown>; error?: unknown };
+    if (!res.ok || !body.data) {
+      console.error('Meta debug_token error:', JSON.stringify(body));
+      return c.json({ success: false, error: 'Meta debug_token error', detail: body }, 502);
+    }
+    const d = body.data;
+    return c.json({
+      success: true,
+      data: {
+        isValid: d.is_valid ?? false,
+        type: d.type ?? null,
+        // Unix seconds; 0 = never expires.
+        expiresAt: typeof d.expires_at === 'number' ? d.expires_at : null,
+        dataAccessExpiresAt:
+          typeof d.data_access_expires_at === 'number' ? d.data_access_expires_at : null,
+      },
+    });
+  } catch (err) {
+    console.error('GET /api/ad-insights/token-status error:', err);
+    return c.json({ success: false, error: 'Internal server error' }, 500);
+  }
+});
+
 // GET /api/ad-insights/age — age breakdown
 adInsights.get('/api/ad-insights/age', async (c) => {
   const result = await resolveMetaConfig(c.env.DB);

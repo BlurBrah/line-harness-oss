@@ -501,6 +501,10 @@ export const api = {
       if (params?.until) q.set('until', params.until)
       return fetchApi<ApiResponse<{ data: Array<Record<string, unknown>> }>>(`/api/ad-insights/age?${q}`)
     },
+    tokenStatus: () =>
+      fetchApi<ApiResponse<{ isValid: boolean; type: string | null; expiresAt: number | null; dataAccessExpiresAt: number | null }>>(
+        '/api/ad-insights/token-status',
+      ),
   },
   affiliates: {
     list: () =>

@@ -35,6 +35,13 @@ interface ConversionReport {
   totalValue: number
 }
 
+interface TokenStatus {
+  isValid: boolean
+  type: string | null
+  expiresAt: number | null
+  dataAccessExpiresAt: number | null
+}
+
 const JPY_RATE = 150
 
 function toYMD(d: Date): string {
@@ -317,6 +324,7 @@ export default function AdInsightsPage() {
   const [ads, setAds] = useState<MetaRow[]>([])
   const [ageRows, setAgeRows] = useState<MetaRow[]>([])
   const [cvReport, setCvReport] = useState<ConversionReport[]>([])
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -370,6 +378,13 @@ export default function AdInsightsPage() {
 
   useEffect(() => { load() }, [load])
 
+  // Token expiry is independent of the date range, so fetch it once on mount.
+  useEffect(() => {
+    api.adInsights.tokenStatus()
+      .then((res) => { if (res.success && res.data) setTokenStatus(res.data) })
+      .catch(() => { /* badge stays hidden on failure */ })
+  }, [])
+
   // Derive funnel numbers
   const spend = summary ? parseFloat(summary.spend) : 0
   const spendJpy = spend * JPY_RATE
@@ -385,6 +400,7 @@ export default function AdInsightsPage() {
       <Header
         title="広告パフォーマンス"
         description="Meta広告 + LINE Harness ファネル統合ダッシュボード"
+        action={<TokenStatusBadge status={tokenStatus} />}
       />
 
       {/* Date range controls */}
@@ -539,6 +555,59 @@ export default function AdInsightsPage() {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+// Meta access token expiry badge shown in the page header. Warns before the
+// token lapses (which would silently break ad data loading): green when far
+// off / non-expiring, yellow within 60 days, red within 30 days or expired.
+function TokenStatusBadge({ status }: { status: TokenStatus | null }) {
+  if (!status) return null
+
+  // expires_at = 0 means a non-expiring (system user) token.
+  const neverExpires = status.expiresAt === 0
+  const expMs = status.expiresAt && status.expiresAt > 0 ? status.expiresAt * 1000 : null
+  const daysLeft = expMs !== null ? Math.floor((expMs - Date.now()) / 86_400_000) : null
+  const expired = daysLeft !== null && daysLeft < 0
+
+  let tone: { box: string; dot: string; label: string }
+  if (!status.isValid || expired) {
+    tone = { box: 'bg-red-50 border-red-300 text-red-700', dot: 'bg-red-500', label: 'text-red-600' }
+  } else if (neverExpires) {
+    tone = { box: 'bg-green-50 border-green-300 text-green-700', dot: 'bg-green-500', label: 'text-green-600' }
+  } else if (daysLeft !== null && daysLeft <= 30) {
+    tone = { box: 'bg-red-50 border-red-300 text-red-700', dot: 'bg-red-500', label: 'text-red-600' }
+  } else if (daysLeft !== null && daysLeft <= 60) {
+    tone = { box: 'bg-amber-50 border-amber-300 text-amber-700', dot: 'bg-amber-500', label: 'text-amber-600' }
+  } else {
+    tone = { box: 'bg-green-50 border-green-300 text-green-700', dot: 'bg-green-500', label: 'text-green-600' }
+  }
+
+  let main: string
+  let sub: string
+  if (!status.isValid) {
+    main = 'トークン無効'
+    sub = '再設定が必要'
+  } else if (neverExpires) {
+    main = '無期限'
+    sub = expMs === null ? 'Meta トークン' : ''
+  } else if (expired) {
+    main = '期限切れ'
+    sub = expMs ? new Date(expMs).toLocaleDateString('ja-JP') : ''
+  } else {
+    main = `あと ${daysLeft} 日`
+    sub = expMs ? new Date(expMs).toLocaleDateString('ja-JP') : ''
+  }
+
+  return (
+    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${tone.box}`} title="Meta アクセストークンの有効期限">
+      <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+      <div className="leading-tight">
+        <p className="text-[10px] uppercase tracking-wide opacity-70">🔑 Meta トークン</p>
+        <p className="text-sm font-bold">{main}</p>
+        {sub && <p className={`text-[10px] ${tone.label}`}>{sub}</p>}
+      </div>
     </div>
   )
 }
