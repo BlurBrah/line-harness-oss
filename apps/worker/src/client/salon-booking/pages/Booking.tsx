@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import MenuList from '../components/MenuList.js';
 import StaffList from '../components/StaffList.js';
 import DateTimePicker from '../components/DateTimePicker.js';
 import Confirm from '../components/Confirm.js';
 import Done from '../components/Done.js';
-import type { MenuItem, StaffItem } from '../lib/api.js';
+import { createApi, type MenuItem, type StaffItem } from '../lib/api.js';
+import { useSalonContext } from '../lib/context.js';
 
 type Step = 'menu' | 'staff' | 'datetime' | 'confirm' | 'done';
 
@@ -22,10 +23,42 @@ export default function Booking({
   peekMode: boolean;
   exitPeek: () => void;
 }) {
+  const ctx = useSalonContext();
   const [step, setStep] = useState<Step>('menu');
   const [menu, setMenu] = useState<MenuItem | null>(null);
   const [staff, setStaff] = useState<StaffItem | null>(null);
   const [slot, setSlot] = useState<{ date: string; start: string } | null>(null);
+
+  // Deep-link entry: ?menuId=xxx lets external menu LPs (e.g. the SUTEKINA-style
+  // card list) drop the user straight into the staff-pick step for a chosen
+  // menu, skipping the in-LIFF menu picker. Without this, every entry forces
+  // users to re-select a menu they already chose on the LP — that double
+  // selection bleeds conversion. We fetch and validate the menu against the
+  // current account's menu list (rather than trusting the URL) so a stale or
+  // cross-account menuId silently falls back to the normal menu step.
+  useEffect(() => {
+    if (menu) return;
+    const params = new URLSearchParams(window.location.search);
+    const wantId = params.get('menuId');
+    if (!wantId) return;
+    let cancelled = false;
+    createApi(ctx)
+      .menus()
+      .then((r) => {
+        if (cancelled) return;
+        const m = r.menus.find((x) => x.id === wantId);
+        if (m) {
+          setMenu(m);
+          setStep('staff');
+        }
+      })
+      .catch(() => {
+        // ignore — user can still pick from MenuList
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ctx, menu]);
 
   function exitPeekToBooking() {
     const url = new URL(window.location.href);
