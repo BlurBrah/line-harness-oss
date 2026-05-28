@@ -19,3 +19,6 @@ apps/worker/dist/
 .line-harness-config.json
 .line-harness-setup.json
 profile-preview.html
+
+# Personal test assets (watashino-test rich menu images, etc.) — must never be pushed to OSS
+materials/
