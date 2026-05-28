@@ -88,12 +88,18 @@ async function sendMetaConversion(
 ): Promise<void> {
   const url = `https://graph.facebook.com/v21.0/${config.pixel_id}/events`;
 
+  // fbc must encode the click time (Unix seconds), not the CV send time.
+  // Meta uses this to confirm the click→CV pairing — sending Date.now() in
+  // milliseconds (off by 1000x) or the CV timestamp instead of the click
+  // timestamp tanks the match rate, especially for long consideration cycles
+  // where the user converts days after the ad click.
+  const clickEpochSec = Math.floor(new Date(ref.created_at).getTime() / 1000);
   const eventData: Record<string, unknown> = {
     event_name: eventName,
     event_time: Math.floor(Date.now() / 1000),
     action_source: 'website',
     user_data: {
-      fbc: `fb.1.${Date.now()}.${ref.fbclid}`,
+      fbc: `fb.1.${clickEpochSec}.${ref.fbclid}`,
       client_ip_address: ref.ip_address || undefined,
       client_user_agent: ref.user_agent || undefined,
     },
