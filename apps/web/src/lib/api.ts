@@ -473,7 +473,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    report: (params?: { startDate?: string; endDate?: string }) =>
+    report: (params?: { startDate?: string; endDate?: string; lineAccountId?: string }) =>
       fetchApi<ApiResponse<{ conversionPointId: string; conversionPointName: string; eventType: string; totalCount: number; totalValue: number }[]>>(
         '/api/conversions/report?' + new URLSearchParams(params as Record<string, string>),
       ),

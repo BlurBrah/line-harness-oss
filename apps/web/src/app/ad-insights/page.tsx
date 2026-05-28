@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import Header from '@/components/layout/header'
+import { useAccount } from '@/contexts/account-context'
 
 // Date range is always custom (since/until)
 
@@ -316,6 +317,7 @@ function AgeTable({ rows }: { rows: MetaRow[] }) {
 }
 
 export default function AdInsightsPage() {
+  const { selectedAccountId } = useAccount()
   const [since, setSince] = useState(monthStart(0))
   const [until, setUntil] = useState(toYMD(new Date()))
   const [summary, setSummary] = useState<MetaRow | null>(null)
@@ -334,7 +336,16 @@ export default function AdInsightsPage() {
     setLoading(true)
     setError(null)
     try {
-      const cvParams = { startDate: since, endDate: until + 'T23:59:59' }
+      // Scope LINE Harness conversion counts to the currently selected LINE
+      // Official Account so test accounts (e.g. watashino-test) don't bleed
+      // into the production account's ad-report funnel. Meta-side metrics
+      // (impressions/clicks/spend) are intentionally not scoped — the Meta
+      // ad account is shared across LINE accounts in this org.
+      const cvParams: { startDate: string; endDate: string; lineAccountId?: string } = {
+        startDate: since,
+        endDate: until + 'T23:59:59',
+      }
+      if (selectedAccountId) cvParams.lineAccountId = selectedAccountId
 
       const [sumRes, campRes, adsetRes, adRes, ageRes, cvRes] = await Promise.allSettled([
         api.adInsights.summary(queryParams),
@@ -374,7 +385,7 @@ export default function AdInsightsPage() {
     }
     setLoading(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [since, until])
+  }, [since, until, selectedAccountId])
 
   useEffect(() => { load() }, [load])
 

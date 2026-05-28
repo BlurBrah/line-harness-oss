@@ -164,6 +164,7 @@ conversions.get('/api/conversions/report', async (c) => {
     const report = await getConversionReport(c.env.DB, {
       startDate: c.req.query('startDate'),
       endDate: c.req.query('endDate'),
+      lineAccountId: c.req.query('lineAccountId'),
     });
 
     return c.json({ success: true, data: report });

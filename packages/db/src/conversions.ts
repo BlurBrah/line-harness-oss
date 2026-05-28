@@ -228,7 +228,7 @@ export interface ConversionReport {
 
 export async function getConversionReport(
   db: D1Database,
-  opts: { startDate?: string; endDate?: string } = {},
+  opts: { startDate?: string; endDate?: string; lineAccountId?: string } = {},
 ): Promise<ConversionReport[]> {
   const conditions: string[] = [];
   const values: unknown[] = [];
@@ -241,14 +241,24 @@ export async function getConversionReport(
     conditions.push('ce.created_at <= ?');
     values.push(opts.endDate);
   }
-
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  // Scope conversion counts to a single LINE Official Account so multi-account
+  // tenants don't see test-account friend_adds (e.g. watashino-test) bleed
+  // into the production ad-report ("LINE追加 10" must reflect the selected
+  // account only, not a global sum). Filtering happens in the LEFT JOIN's ON
+  // clause so conversion_points with zero events for the account still appear
+  // as 0 rows; moving this to WHERE would drop them entirely.
+  if (opts.lineAccountId) {
+    conditions.push('ce.friend_id IN (SELECT id FROM friends WHERE line_account_id = ?)');
+    values.push(opts.lineAccountId);
+  }
 
   // Count each friend at most once per conversion point. A friend can hit the
   // same point multiple times — friend_add re-fires on LINE re-follow/unblock,
   // and a backfill may have seeded an extra row — which would otherwise inflate
   // the funnel ("LINE追加 10" for only 8 actual friends) and distort CPA.
   // total_value is unique friends × the point's value to stay consistent.
+  const onClause = conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : '';
+
   const result = await db
     .prepare(
       `SELECT
@@ -258,7 +268,7 @@ export async function getConversionReport(
          COUNT(DISTINCT ce.friend_id) as total_count,
          COALESCE(cp.value, 0) * COUNT(DISTINCT ce.friend_id) as total_value
        FROM conversion_points cp
-       LEFT JOIN conversion_events ce ON ce.conversion_point_id = cp.id ${conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : ''}
+       LEFT JOIN conversion_events ce ON ce.conversion_point_id = cp.id ${onClause}
        GROUP BY cp.id
        ORDER BY total_count DESC`,
     )
