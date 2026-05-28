@@ -34,6 +34,12 @@ import { sendAdConversions } from './ad-conversion.js';
 // no per-tag trigger wiring required.
 const EVENT_TO_CONVERSION_TYPE: Record<string, string> = {
   friend_add: 'Lead',
+  // Fired when a user submits the booking confirm form (status='requested',
+  // before any salon-side approval). This is the user-side intent moment —
+  // what we want Meta to learn from for ad optimization. Salon approval
+  // happens later and is tracked separately via tag-trigger CV points so
+  // existing production accounts using approve-time CV aren't affected.
+  booking_requested: 'Schedule',
 };
 
 export interface EventPayload {

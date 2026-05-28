@@ -25,6 +25,7 @@ import {
   IDEMPOTENCY_TTL_MINUTES,
   type BookingStatus,
 } from '../services/booking-types.js';
+import { fireEvent } from '../services/event-bus.js';
 
 const booking = new Hono<Env>();
 
@@ -430,6 +431,17 @@ booking.post('/api/liff/booking/requests', async (c) => {
   c.executionCtx.waitUntil(
     notifyForBooking(c.env.DB, bookingId, 'requested').catch((err) =>
       console.error('booking notify (requested) failed:', err),
+    ),
+  );
+
+  // Fire booking_requested event so any conversion_point with event_type=Schedule
+  // (and no explicit trigger configured) auto-records a CV. Salon-side approval
+  // is intentionally NOT the trigger — users who submit a booking are the
+  // optimization signal Meta should learn from, and approval-time CV would
+  // delay the postback past Meta's 7-day attribution window.
+  c.executionCtx.waitUntil(
+    fireEvent(c.env.DB, 'booking_requested', { friendId }).catch((err) =>
+      console.error('booking fireEvent (booking_requested) failed:', err),
     ),
   );
 
