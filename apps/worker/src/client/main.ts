@@ -71,6 +71,41 @@ function getRef(): string | null {
   return params.get('ref');
 }
 
+// Pull ad click IDs + UTM params from the current URL.
+// LP pages forward these from their own ?fbclid=… to the LIFF URL, and we
+// must hand them to /api/liff/link so ref_tracking can persist them.
+// Without this, every Meta-ad-driven friend lands with fbclid=NULL and
+// downstream CAPI postbacks never fire.
+export interface AdParams {
+  fbclid?: string;
+  gclid?: string;
+  twclid?: string;
+  ttclid?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+}
+
+export function getAdParams(): AdParams {
+  const params = new URLSearchParams(window.location.search);
+  const out: AdParams = {};
+  const fbclid = params.get('fbclid');
+  const gclid = params.get('gclid');
+  const twclid = params.get('twclid');
+  const ttclid = params.get('ttclid');
+  const utmSource = params.get('utm_source');
+  const utmMedium = params.get('utm_medium');
+  const utmCampaign = params.get('utm_campaign');
+  if (fbclid) out.fbclid = fbclid;
+  if (gclid) out.gclid = gclid;
+  if (twclid) out.twclid = twclid;
+  if (ttclid) out.ttclid = ttclid;
+  if (utmSource) out.utmSource = utmSource;
+  if (utmMedium) out.utmMedium = utmMedium;
+  if (utmCampaign) out.utmCampaign = utmCampaign;
+  return out;
+}
+
 function getSavedUuid(): string | null {
   try {
     return localStorage.getItem(UUID_STORAGE_KEY);
@@ -222,6 +257,7 @@ async function linkAndAddFlow() {
         existingUuid: existingUuid,
         ref: ref,
         ig: linkParams.get('ig') || '',
+        ...getAdParams(),
       }),
     }).then(async (res) => {
       if (res.ok) {
@@ -337,6 +373,7 @@ async function initSalonBooking(): Promise<void> {
       existingUuid,
       ref: ref || undefined,
       ig: ig || undefined,
+      ...getAdParams(),
     }),
   })
     .then(async (res) => {
@@ -407,6 +444,7 @@ async function initEventBooking(initialKind: 'detail' | 'history'): Promise<void
       displayName: profile.displayName,
       existingUuid,
       ref: ref || undefined,
+      ...getAdParams(),
     }),
   })
     .then(async (res) => {

@@ -96,6 +96,29 @@ function apiCall(path: string, options?: RequestInit): Promise<Response> {
   });
 }
 
+// Forward Meta/Google/X/TikTok click IDs + UTM params from the LIFF URL into
+// /api/liff/link so ref_tracking can persist them. Without this, ad-driven
+// friends land with fbclid=NULL and CAPI postbacks never fire.
+function readAdParamsFromUrl(): Record<string, string> {
+  const p = new URLSearchParams(window.location.search);
+  const out: Record<string, string> = {};
+  const fbclid = p.get('fbclid');
+  const gclid = p.get('gclid');
+  const twclid = p.get('twclid');
+  const ttclid = p.get('ttclid');
+  const utmSource = p.get('utm_source');
+  const utmMedium = p.get('utm_medium');
+  const utmCampaign = p.get('utm_campaign');
+  if (fbclid) out.fbclid = fbclid;
+  if (gclid) out.gclid = gclid;
+  if (twclid) out.twclid = twclid;
+  if (ttclid) out.ttclid = ttclid;
+  if (utmSource) out.utmSource = utmSource;
+  if (utmMedium) out.utmMedium = utmMedium;
+  if (utmCampaign) out.utmCampaign = utmCampaign;
+  return out;
+}
+
 function getApp(): HTMLElement {
   return document.getElementById('app')!;
 }
@@ -1191,6 +1214,7 @@ export async function initForm(formId: string | null): Promise<void> {
           idToken: rawIdToken,
           displayName: profile.displayName,
           existingUuid: state.friendId,
+          ...readAdParamsFromUrl(),
         }),
       }).then(async (linkRes) => {
         if (linkRes.ok) {

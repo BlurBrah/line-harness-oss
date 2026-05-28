@@ -261,6 +261,23 @@ app.get('/r/:ref', async (c) => {
   if (xh) liffParams.set('xh', xh);
   const ig = c.req.query('ig');
   if (ig) liffParams.set('ig', ig);
+  // Ad attribution: forward click IDs + UTM into the LIFF URL so the LIFF
+  // client can include them in the /api/liff/link body. Without this, every
+  // mobile flow drops fbclid/gclid/utm here and ad-conversion CAPI never fires.
+  const fbclid = c.req.query('fbclid');
+  if (fbclid) liffParams.set('fbclid', fbclid);
+  const gclid = c.req.query('gclid');
+  if (gclid) liffParams.set('gclid', gclid);
+  const twclid = c.req.query('twclid');
+  if (twclid) liffParams.set('twclid', twclid);
+  const ttclid = c.req.query('ttclid');
+  if (ttclid) liffParams.set('ttclid', ttclid);
+  const utmSource = c.req.query('utm_source');
+  if (utmSource) liffParams.set('utm_source', utmSource);
+  const utmMedium = c.req.query('utm_medium');
+  if (utmMedium) liffParams.set('utm_medium', utmMedium);
+  const utmCampaign = c.req.query('utm_campaign');
+  if (utmCampaign) liffParams.set('utm_campaign', utmCampaign);
   const liffTarget = liffParams.toString() ? `${liffUrl}?${liffParams.toString()}` : liffUrl;
 
   // Help link carries the *resolved* liff target as `t=` so the help page

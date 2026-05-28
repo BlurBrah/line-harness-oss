@@ -403,6 +403,8 @@ liffRoutes.get('/auth/line', async (c) => {
   if (twclid) liffParams.set('twclid', twclid);
   if (ttclid) liffParams.set('ttclid', ttclid);
   if (utmSource) liffParams.set('utm_source', utmSource);
+  if (utmMedium) liffParams.set('utm_medium', utmMedium);
+  if (utmCampaign) liffParams.set('utm_campaign', utmCampaign);
   const liffTarget = liffParams.toString()
     ? `${liffUrl}?${liffParams.toString()}`
     : liffUrl;
@@ -1137,6 +1139,15 @@ liffRoutes.post('/api/liff/link', async (c) => {
       ref?: string;
       existingUuid?: string;
       ig?: string;
+      // Ad attribution: forwarded from LP query string by the LIFF client so
+      // ref_tracking can persist them and ad-conversion CAPI can fire later.
+      fbclid?: string;
+      gclid?: string;
+      twclid?: string;
+      ttclid?: string;
+      utmSource?: string;
+      utmMedium?: string;
+      utmCampaign?: string;
     }>();
 
     if (!body.idToken) {
@@ -1200,6 +1211,15 @@ liffRoutes.post('/api/liff/link', async (c) => {
             friendId: friend.id,
             entryRouteId: route?.id ?? null,
             sourceUrl: null,
+            fbclid: body.fbclid || null,
+            gclid: body.gclid || null,
+            twclid: body.twclid || null,
+            ttclid: body.ttclid || null,
+            utmSource: body.utmSource || null,
+            utmMedium: body.utmMedium || null,
+            utmCampaign: body.utmCampaign || null,
+            userAgent: c.req.header('User-Agent') || null,
+            ipAddress: c.req.header('CF-Connecting-IP') || null,
           });
         } catch { /* silent */ }
       }
@@ -1231,6 +1251,34 @@ liffRoutes.post('/api/liff/link', async (c) => {
           console.error('X Harness token resolution error (non-blocking):', err);
         }
       }
+
+      // Persist ad click IDs + UTM on the already-linked friend as well, so an
+      // existing friend who returns via a new ad campaign gets the latest
+      // attribution recorded — otherwise CAPI postbacks would never fire for
+      // anyone who friended us before the ad campaign launched.
+      {
+        const adMeta: Record<string, string> = {};
+        if (body.gclid) adMeta.gclid = body.gclid;
+        if (body.fbclid) adMeta.fbclid = body.fbclid;
+        if (body.twclid) adMeta.twclid = body.twclid;
+        if (body.ttclid) adMeta.ttclid = body.ttclid;
+        if (body.utmSource) adMeta.utm_source = body.utmSource;
+        if (body.utmMedium) adMeta.utm_medium = body.utmMedium;
+        if (body.utmCampaign) adMeta.utm_campaign = body.utmCampaign;
+
+        if (Object.keys(adMeta).length > 0) {
+          const existingMeta = await db
+            .prepare('SELECT metadata FROM friends WHERE id = ?')
+            .bind(friend.id)
+            .first<{ metadata: string }>();
+          const merged = { ...JSON.parse(existingMeta?.metadata || '{}'), ...adMeta };
+          await db
+            .prepare('UPDATE friends SET metadata = ?, updated_at = ? WHERE id = ?')
+            .bind(JSON.stringify(merged), jstNow(), friend.id)
+            .run();
+        }
+      }
+
       return c.json({
         success: true,
         data: { userId: (friend as unknown as Record<string, unknown>).user_id, alreadyLinked: true },
@@ -1267,11 +1315,46 @@ liffRoutes.post('/api/liff/link', async (c) => {
           friendId: friend.id,
           entryRouteId: route?.id ?? null,
           sourceUrl: null,
+          fbclid: body.fbclid || null,
+          gclid: body.gclid || null,
+          twclid: body.twclid || null,
+          ttclid: body.ttclid || null,
+          utmSource: body.utmSource || null,
+          utmMedium: body.utmMedium || null,
+          utmCampaign: body.utmCampaign || null,
+          userAgent: c.req.header('User-Agent') || null,
+          ipAddress: c.req.header('CF-Connecting-IP') || null,
         });
       } catch { /* silent */ }
 
       // Apply ref attribution (tag + scenario push) for newly-linked friends
       await applyRefAttribution(c, body.ref, friend, lineUserId);
+    }
+
+    // Mirror the /auth/callback path: persist ad click IDs + UTM on the friend
+    // record so future conversions can fire CAPI postbacks even after the
+    // ref_tracking row has been superseded by a later touch.
+    {
+      const adMeta: Record<string, string> = {};
+      if (body.gclid) adMeta.gclid = body.gclid;
+      if (body.fbclid) adMeta.fbclid = body.fbclid;
+      if (body.twclid) adMeta.twclid = body.twclid;
+      if (body.ttclid) adMeta.ttclid = body.ttclid;
+      if (body.utmSource) adMeta.utm_source = body.utmSource;
+      if (body.utmMedium) adMeta.utm_medium = body.utmMedium;
+      if (body.utmCampaign) adMeta.utm_campaign = body.utmCampaign;
+
+      if (Object.keys(adMeta).length > 0) {
+        const existingMeta = await db
+          .prepare('SELECT metadata FROM friends WHERE id = ?')
+          .bind(friend.id)
+          .first<{ metadata: string }>();
+        const merged = { ...JSON.parse(existingMeta?.metadata || '{}'), ...adMeta };
+        await db
+          .prepare('UPDATE friends SET metadata = ?, updated_at = ? WHERE id = ?')
+          .bind(JSON.stringify(merged), jstNow(), friend.id)
+          .run();
+      }
     }
 
     // X Harness token resolution: ref starting with "xh:" links X account to LINE friend
