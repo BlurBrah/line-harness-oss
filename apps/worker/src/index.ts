@@ -261,6 +261,14 @@ app.get('/r/:ref', async (c) => {
   if (xh) liffParams.set('xh', xh);
   const ig = c.req.query('ig');
   if (ig) liffParams.set('ig', ig);
+  // Forward LIFF-side routing params so external menu LPs (e.g. SUTEKINA-style
+  // card list at /menu/:account) can deep-link straight into salon-book +
+  // menu pre-selected. Without these, taps from the menu LP land on the
+  // default friend-add flow and silently noop for already-linked friends.
+  const page = c.req.query('page');
+  if (page) liffParams.set('page', page);
+  const menuId = c.req.query('menuId');
+  if (menuId) liffParams.set('menuId', menuId);
   // Ad attribution: forward click IDs + UTM into the LIFF URL so the LIFF
   // client can include them in the /api/liff/link body. Without this, every
   // mobile flow drops fbclid/gclid/utm here and ad-conversion CAPI never fires.
@@ -541,6 +549,112 @@ ${longPressBlock}
 
 // Convenience redirect for /book path
 app.get('/book', (c) => c.redirect('/?page=book'));
+
+// Public menu LP — SUTEKINA-style card list for a LINE Official Account.
+//
+// Renders the account's active menus as tappable cards. Each card links to
+// /auth/line?ref=menu-lp&account=<channelId>&page=salon-book&menuId=<id>
+// so taps go through the standard friend-add flow and end up on the
+// salon-booking LIFF with the chosen menu pre-selected (skipping the in-LIFF
+// menu picker — see Booking.tsx useEffect on menuId).
+//
+// Server-rendered HTML (no client JS) on purpose: faster first paint than
+// a SPA, and survives in-app browsers (X / IG) that throttle JS execution.
+app.get('/menu/:account', async (c) => {
+  const accountParam = c.req.param('account');
+
+  const account = await c.env.DB
+    .prepare('SELECT id, channel_id, name, liff_id FROM line_accounts WHERE channel_id = ? OR id = ?')
+    .bind(accountParam, accountParam)
+    .first<{ id: string; channel_id: string; name: string; liff_id: string | null }>();
+  if (!account) return c.html('<p style="padding:24px;font-family:sans-serif">アカウントが見つかりません</p>', 404);
+  if (!account.liff_id) return c.html('<p style="padding:24px;font-family:sans-serif">このアカウントにはLIFFが設定されていません</p>', 503);
+
+  const menusRes = await c.env.DB
+    .prepare(
+      `SELECT id, name, category_label, description, duration_minutes, base_price, sort_order
+       FROM menus
+       WHERE line_account_id = ? AND is_active = 1 AND deleted_at IS NULL
+       ORDER BY sort_order, created_at`,
+    )
+    .bind(account.id)
+    .all<{
+      id: string;
+      name: string;
+      category_label: string | null;
+      description: string | null;
+      duration_minutes: number;
+      base_price: number;
+      sort_order: number;
+    }>();
+  const menus = menusRes.results ?? [];
+
+  function esc(s: string): string {
+    return s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
+  }
+  function yen(n: number): string {
+    return n === 0 ? '0円' : `${n.toLocaleString('ja-JP')}円`;
+  }
+
+  // Link directly to the LIFF URL — same pattern as the rich-menu "予約する"
+  // button. Going through /auth/line would hit the accountParam branch and
+  // 302 to LINE OAuth, which gets stuck on a blank consent screen inside the
+  // already-logged-in LIFF in-app browser. Hard-coding the LIFF URL here
+  // skips that detour: LIFF SDK handles auth, salon-booking reads menuId
+  // from window.location.search.
+  const liffBase = `https://liff.line.me/${account.liff_id}`;
+  const bookHref = (menuId: string) =>
+    `${liffBase}/?page=salon-book&menuId=${encodeURIComponent(menuId)}`;
+
+  const cards = menus
+    .map((m) => `
+      <div class="card">
+        <div class="card-tag">${esc(m.category_label ?? 'メニュー')}</div>
+        <h3 class="card-title">${esc(m.name)}</h3>
+        <div class="card-meta">
+          <span class="price">${esc(yen(m.base_price))}</span>
+          <span class="dur">${m.duration_minutes}分</span>
+        </div>
+        ${m.description ? `<p class="card-desc">${esc(m.description)}</p>` : ''}
+        <a class="cta" href="${bookHref(m.id)}">タップして空席を確認 ＞</a>
+      </div>
+    `)
+    .join('');
+
+  return c.html(`<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>メニュー｜${esc(account.name)}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Hiragino Sans','Helvetica Neue',system-ui,-apple-system,sans-serif;background:#f7f5f2;color:#333;line-height:1.5}
+.wrap{max-width:480px;margin:0 auto;padding:20px 16px 60px}
+.page-title{font-size:20px;font-weight:700;margin-bottom:4px;color:#333}
+.page-sub{font-size:13px;color:#888;margin-bottom:20px}
+.card{background:#fff;border-radius:14px;padding:18px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);position:relative;overflow:hidden}
+.card-tag{display:inline-block;font-size:11px;color:#fff;background:linear-gradient(135deg,#f5a3a8,#e88a99);padding:3px 10px;border-radius:999px;margin-bottom:10px;font-weight:600}
+.card-title{font-size:15px;font-weight:700;color:#2a2a2a;margin-bottom:8px;line-height:1.45}
+.card-meta{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.price{font-size:18px;font-weight:700;color:#e88a99}
+.dur{font-size:12px;color:#888}
+.card-desc{font-size:12px;color:#666;line-height:1.65;margin-bottom:14px}
+.cta{display:block;text-align:right;font-size:13px;font-weight:600;color:#e88a99;text-decoration:none;border-top:1px solid #f0e8e8;padding-top:12px}
+.cta:active{opacity:0.7}
+.footer{text-align:center;font-size:11px;color:#bbb;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1 class="page-title">オススメのメニュー</h1>
+<p class="page-sub">${esc(account.name)}</p>
+${cards}
+<p class="footer">タップして空席カレンダーから予約できます</p>
+</div>
+</body>
+</html>`);
+});
 
 // 404 fallback — API paths return JSON 404, everything else serves from static assets (LIFF/admin)
 export const notFoundHandler = async (c: Parameters<typeof app.notFound>[0] extends (ctx: infer C) => unknown ? C : never) => {
